@@ -1,101 +1,139 @@
-import Image from "next/image";
+import { GlucoseChart } from "@/components/GlucoseChart";
+import { Nav, NavLink } from "@/components/Nav";
 
-export default function Home() {
+type GlucoseDataProps = {
+  data: {
+    date: string;
+    value: number;
+    isMax: boolean;
+  }[];
+};
+
+const loginUrl = "https://api-la.libreview.io/llu/auth/login";
+const graphUrl =
+  "https://api-la.libreview.io/llu/connections/46c16886-c96e-e911-813f-02d09c370615/graph";
+
+const headers = {
+  product: "llu.android",
+  version: "4.9.0",
+};
+
+const body = {
+  email: process.env.EMAIL,
+  password: process.env.PASSWORD,
+};
+
+async function getGlucoseData() {
+  const getToken = async () => {
+    const { data } = await fetch(loginUrl, {
+      body: JSON.stringify(body),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+    }).then((res) => res.json());
+
+    return data.authTicket;
+  };
+
+  const { token } = await getToken();
+
+  const getGlucoseData = await fetch(graphUrl, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...headers,
+    },
+  }).then((res) => res.json());
+
+  const { glucoseMeasurement } = getGlucoseData.data.connection;
+
+  const lastReading = {
+    date: glucoseMeasurement.Timestamp,
+    value: glucoseMeasurement.Value,
+    isMax: false,
+  };
+
+  let readings = getGlucoseData.data.graphData.map(
+    (item: { Timestamp: string; Value: number }) => ({
+      date: item.Timestamp,
+      value: item.Value,
+      isMax: false,
+    })
+  );
+
+  // add last reading to the end of the data array
+  readings.push(lastReading);
+
+  // given an array of glucose readings, identify the local maximums
+  const findLocalMaxima = (data: GlucoseDataProps["data"]) => {
+    return data.map((reading, index, array) => {
+      const currentValue = reading.value;
+
+      // Get available previous and next values
+      const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
+      const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
+      const next1Value =
+        index < array.length - 1 ? array[index + 1].value : -Infinity;
+      const next2Value =
+        index < array.length - 2 ? array[index + 2].value : -Infinity;
+
+      // For edge points (first two or last two), check only available neighbors
+      let isLocalMax = false;
+
+      if (array.length <= 1) {
+        // If there are less than 3 points, all points are local maxima
+        isLocalMax = currentValue > next1Value && currentValue > next2Value;
+      } else if (index <= 2) {
+        // First two points: check only available previous and next two points
+        isLocalMax =
+          currentValue >= prev1Value &&
+          currentValue >= next1Value &&
+          currentValue >= next2Value;
+      } else if (index >= array.length - 3) {
+        // Last two points: check only available previous two and next points
+        isLocalMax =
+          currentValue >= prev2Value &&
+          currentValue >= prev1Value &&
+          currentValue >= next1Value;
+      } else if (index >= array.length - 2) {
+        // Last point: check only available previous two points
+        isLocalMax = currentValue > prev2Value && currentValue > prev1Value;
+      } else {
+        // Middle points: check all two points on both sides
+        isLocalMax =
+          currentValue >= prev2Value &&
+          currentValue >= prev1Value &&
+          currentValue >= next1Value &&
+          currentValue >= next2Value;
+      }
+
+      return {
+        ...reading,
+        isMax: isLocalMax,
+        label: isLocalMax ? currentValue : null,
+      };
+    });
+  };
+
+  readings = findLocalMaxima(readings);
+  // console.log({ localMaxs });
+
+  console.log({ readings });
+  return readings;
+}
+
+export default async function Home({
+  dateRangeOption,
+}: {
+  dateRangeOption?: string;
+}) {
+  const readings = await getGlucoseData();
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    <main className="bg-slate-600 h-screen p-8 flex justify-center items-center  w-full">
+      <GlucoseChart data={readings} />
+    </main>
   );
 }
