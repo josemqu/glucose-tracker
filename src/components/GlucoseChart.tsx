@@ -83,16 +83,29 @@ const rgbToHsl = (r: number, g: number, b: number) => {
   return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 };
 
-const getColor = (value: number) => {
+const getColor = (value: number | undefined) => {
+  if (!value) return "#000";
   if (value < 70) return colors.low;
   if (value <= 180) return colors.normal;
   if (value <= 250) return colors.high;
   return colors.veryHigh;
 };
 
-const CustomDot = (props: any) => {
+const CustomDot = (
+  props:
+    | {
+        cx?: number;
+        cy?: number;
+        value?: number;
+      }
+    | {
+        cx?: number;
+        cy?: number;
+        value?: string;
+      }
+) => {
   const { cx, cy, value } = props;
-  const color = getColor(value);
+  const color = getColor(value as number);
   return (
     <circle
       cx={cx}

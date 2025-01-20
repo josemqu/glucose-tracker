@@ -1,5 +1,4 @@
 import { GlucoseChart } from "@/components/GlucoseChart";
-import { Nav, NavLink } from "@/components/Nav";
 
 type GlucoseDataProps = {
   data: {
@@ -124,11 +123,7 @@ async function getGlucoseData() {
   return readings;
 }
 
-export default async function Home({
-  dateRangeOption,
-}: {
-  dateRangeOption?: string;
-}) {
+export default async function Home() {
   const readings = await getGlucoseData();
 
   return (
