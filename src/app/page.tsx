@@ -64,7 +64,43 @@ async function fetchGlucoseReadings(token: string) {
   return response.json();
 }
 
-function processReadings(data: any) {
+/**
+ * 
+ * "glucoseMeasurement": {
+                "FactoryTimestamp": "1/22/2025 1:29:12 AM",
+                "Timestamp": "1/21/2025 10:29:12 PM",
+                "type": 1,
+                "ValueInMgPerDl": 190,
+                "TrendArrow": 3,
+                "TrendMessage": null,
+                "MeasurementColor": 2,
+                "GlucoseUnits": 1,
+                "Value": 190,
+                "isHigh": false,
+                "isLow": false
+            },
+
+ * @param data 
+ * @returns 
+ */
+
+// type definition for the data object
+type GlucoseData = {
+  data: {
+    connection: {
+      glucoseMeasurement: {
+        Timestamp: string;
+        Value: number;
+      };
+    };
+    graphData: {
+      Timestamp: string;
+      Value: number;
+    }[];
+  };
+};
+
+function processReadings(data: GlucoseData) {
   const { glucoseMeasurement } = data.data.connection;
   const lastReading = {
     date: glucoseMeasurement.Timestamp,
@@ -72,7 +108,7 @@ function processReadings(data: any) {
     isMax: false,
   };
 
-  let readings = data.data.graphData.map(
+  const readings = data.data.graphData.map(
     (item: { Timestamp: string; Value: number }) => ({
       date: item.Timestamp,
       value: item.Value,
