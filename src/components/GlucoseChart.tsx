@@ -191,14 +191,14 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
             </span>
           </div>
         </CardTitle>
+        {error && (
+          <Alert variant="destructive" className="mb-4 h-full">
+            <AlertCircle />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
       </CardHeader>
-      {error && (
-        <Alert variant="destructive" className="mx-4 mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
       <CardContent className="h-[20rem] w-full sm:h-[30rem] md:h-[35rem] lg:h-[45rem]">
         <div className="w-full h-full">
           <ResponsiveContainer className="bg-white shadow-lg rounded-lg p-4">
