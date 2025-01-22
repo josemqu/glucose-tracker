@@ -153,7 +153,7 @@ export default async function Home() {
   const initialData = await getGlucoseData();
 
   return (
-    <main className="bg-slate-600 min-h-screen p-8 flex justify-center items-center w-full">
+    <main className="bg-slate-600 min-h-screen p-8 flex justify-center items-start w-full">
       <Suspense fallback={<LoadingState />}>
         <GlucoseChart initialData={initialData} />
       </Suspense>

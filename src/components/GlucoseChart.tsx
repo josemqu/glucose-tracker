@@ -103,10 +103,10 @@ const CustomDot = (props: {
     <circle
       cx={cx}
       cy={cy}
-      r={6}
+      r={4}
       fill={getLighterColor(color)}
       stroke={color}
-      strokeWidth={2}
+      strokeWidth={1}
     />
   );
 };
@@ -174,17 +174,22 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
   const xAxisMax = data?.length - 1;
 
   return (
-    <Card className="w-full h-full bg-slate-400 border-slate-600">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Glucose Readings with Local Maxima</span>
-          <span className="text-sm font-normal">
-            {isLoading
-              ? "Updating..."
-              : `Last updated: ${dateTimeFormatter(lastUpdated.toISOString(), {
-                  seconds: true,
-                })}`}
-          </span>
+    <Card className="w-full h-full bg-slate-400 border-slate-600 p-0 sm:p-1 md:p-2 lg:p-4">
+      <CardHeader className="p-4">
+        <CardTitle className="flex justify-between items-center sm:flex-row flex-col mx-1 sm:mx-2">
+          <div className="flex items-center justify-center">
+            <h4 className="text-base md:text-lg font-bold text-slate-600 text-nowrap">
+              Glucose Readings with Local Maxima
+            </h4>
+          </div>
+          <div className="text-sm font-normal text-nowrap">
+            <span>{isLoading || error ? "🔴" : "🟢"}</span>
+            <span>
+              {` Last updated: ${dateTimeFormatter(lastUpdated.toISOString(), {
+                seconds: true,
+              })}`}
+            </span>
+          </div>
         </CardTitle>
       </CardHeader>
       {error && (
@@ -194,8 +199,8 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <CardContent>
-        <div className="h-96 w-full">
+      <CardContent className="h-[20rem] w-full sm:h-[30rem] md:h-[35rem] lg:h-[45rem]">
+        <div className="w-full h-full">
           <ResponsiveContainer className="bg-white shadow-lg rounded-lg p-4">
             <LineChart data={data}>
               <ReferenceArea
@@ -238,14 +243,24 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                 tickFormatter={(date: string) =>
                   dateTimeFormatter(date).split(" ")[1]
                 }
-                label={{ value: "Time", position: "insideBottomRight" }}
+                label={{
+                  value: "Time",
+                  position: "insideBottomRight",
+                  offset: -5,
+                }}
                 domain={[xAxisMin, xAxisMax]}
+                height={40}
               />
               <YAxis
                 domain={[yAxisMin, yAxisMax]}
                 ticks={yAxisTicks}
                 tickFormatter={(value: number) => `${value}`}
-                label={{ value: "mg/dL", angle: -90, position: "insideLeft" }}
+                label={{
+                  value: "mg/dL",
+                  position: "insideTopRight",
+                  viewBox: { x: 45, y: 28, width: 50, height: 50 },
+                }}
+                width={30}
               />
               <Tooltip content={<CustomTooltip />} />
               <Line
@@ -253,10 +268,10 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                 dataKey="value"
                 dot={<CustomDot />}
                 stroke={OPTIONS.lineColor}
-                strokeWidth={2}
+                strokeWidth={1}
                 strokeOpacity={OPTIONS.lineOpacity}
                 connectNulls
-                isAnimationActive={false}
+                // isAnimationActive={true}
               />
               {data?.length &&
                 data
@@ -265,7 +280,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                     <ReferenceDot
                       key={`${point.date}-${index}`}
                       x={point.date}
-                      y={point.value + 12}
+                      y={`${point.value + 15}`}
                       r={0}
                       fill="red"
                       stroke="none"
