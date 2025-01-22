@@ -1,6 +1,5 @@
 // page.tsx
 import { GlucoseChart } from "@/components/GlucoseChart";
-import { cookies } from "next/headers";
 
 // Move API constants to a separate file
 const API_CONFIG = {
