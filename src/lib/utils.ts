@@ -6,14 +6,23 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // date time formatter function
-export function dateTimeFormatter(date: string) {
-  return new Date(date).toLocaleTimeString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    // 24 hs view
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  });
+export function dateTimeFormatter(
+  date: string,
+  options?: { seconds?: boolean }
+) {
+  const dateObj = new Date(date);
+  const time = options?.seconds
+    ? dateObj.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+    : dateObj.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+
+  return `${dateObj.toLocaleDateString("es-AR")} ${time}`;
 }

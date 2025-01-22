@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -13,13 +14,14 @@ import {
   ReferenceDot,
   TooltipProps,
 } from "recharts";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import { dateTimeFormatter } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Keep your existing types and constants
 type GlucoseDataProps = {
-  data: {
+  initialData: {
     date: string;
     value: number;
     isMax: boolean;
@@ -33,7 +35,6 @@ const OPTIONS = {
   labelColor: "#aaa",
 };
 
-// colors dictionary
 const colors = {
   low: "#0022ff",
   normal: "#00cc00",
@@ -41,7 +42,7 @@ const colors = {
   veryHigh: "#b6202e",
 };
 
-// get a lighter color
+// Keep your existing utility functions
 const getLighterColor = (color: string) => {
   const hex = color.replace("#", "");
   const r = parseInt(hex.substring(0, 2), 16);
@@ -51,7 +52,6 @@ const getLighterColor = (color: string) => {
   return `hsl(${hsl[0]}, ${hsl[1]}%, ${hsl[2] + 10}%)`;
 };
 
-// convert rgb to hsl
 const rgbToHsl = (r: number, g: number, b: number) => {
   r /= 255;
   g /= 255;
@@ -91,21 +91,14 @@ const getColor = (value: number | undefined) => {
   return colors.veryHigh;
 };
 
-const CustomDot = (
-  props:
-    | {
-        cx?: number;
-        cy?: number;
-        value?: number;
-      }
-    | {
-        cx?: number;
-        cy?: number;
-        value?: string;
-      }
-) => {
+// Keep your existing custom components
+const CustomDot = (props: {
+  cx?: number;
+  cy?: number;
+  value?: number | string;
+}) => {
   const { cx, cy, value } = props;
-  const color = getColor(value as number);
+  const color = getColor(typeof value === "number" ? value : undefined);
   return (
     <circle
       cx={cx}
@@ -123,7 +116,7 @@ const CustomTooltip = ({
   payload,
   label,
 }: TooltipProps<number, string>) => {
-  if (!active || !payload || !payload.length) {
+  if (!active || !payload || !payload?.length) {
     return null;
   }
 
@@ -142,20 +135,67 @@ const CustomTooltip = ({
   );
 };
 
-export function GlucoseChart({ data }: GlucoseDataProps) {
+// Updated main component with auto-refresh
+export function GlucoseChart({ initialData }: GlucoseDataProps) {
+  const [data, setData] = useState(initialData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/glucose");
+        if (!response.ok) throw new Error("Failed to fetch data");
+        const newData = await response.json();
+        setData(newData);
+        setLastUpdated(new Date());
+        setError(null);
+      } catch (err) {
+        setError("Failed to update data");
+        console.error("Error fetching glucose data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Set up polling every 2 minutes
+    const intervalId = setInterval(fetchData, 1 * 5 * 1000);
+
+    // Cleanup
+    return () => clearInterval(intervalId);
+  }, []);
+
   const yAxisMin = 0;
   const yAxisMax = 320;
   const yAxisTicks = [0, 70, 180, 250, 300];
   const xAxisMin = 0;
-  const xAxisMax = data.length - 1;
+  const xAxisMax = data?.length - 1;
 
   return (
     <Card className="w-full h-full bg-slate-400 border-slate-600">
       <CardHeader>
-        <CardTitle>Glucose Readings with Local Maxima</CardTitle>
+        <CardTitle className="flex justify-between items-center">
+          <span>Glucose Readings with Local Maxima</span>
+          <span className="text-sm font-normal">
+            {isLoading
+              ? "Updating..."
+              : `Last updated: ${dateTimeFormatter(lastUpdated.toISOString(), {
+                  seconds: true,
+                })}`}
+          </span>
+        </CardTitle>
       </CardHeader>
+      {error && (
+        <Alert variant="destructive" className="mx-4 mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <CardContent>
-        <div className="h-[600px] w-full">
+        <div className="h-96 w-full">
           <ResponsiveContainer className="bg-white shadow-lg rounded-lg p-4">
             <LineChart data={data}>
               <ReferenceArea
@@ -217,23 +257,23 @@ export function GlucoseChart({ data }: GlucoseDataProps) {
                 strokeOpacity={OPTIONS.lineOpacity}
                 connectNulls
                 isAnimationActive={false}
-                // label={renderLabel}
               />
-              {data
-                .filter((point) => point.isMax)
-                .map((point, index) => (
-                  <ReferenceDot
-                    key={index}
-                    x={point.date}
-                    y={point.value + 12}
-                    r={0}
-                    fill="red"
-                    stroke="none"
-                    label={point.value}
-                    className="z-10 font-medium text-black"
-                    isFront
-                  />
-                ))}
+              {data?.length &&
+                data
+                  .filter((point) => point.isMax)
+                  .map((point, index) => (
+                    <ReferenceDot
+                      key={`${point.date}-${index}`}
+                      x={point.date}
+                      y={point.value + 12}
+                      r={0}
+                      fill="red"
+                      stroke="none"
+                      label={point.value}
+                      className="z-10 font-medium text-black"
+                      isFront
+                    />
+                  ))}
             </LineChart>
           </ResponsiveContainer>
         </div>

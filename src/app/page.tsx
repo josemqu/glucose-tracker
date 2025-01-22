@@ -1,7 +1,8 @@
-// page.tsx
+// app/page.tsx
+import { Suspense } from "react";
 import { GlucoseChart } from "@/components/GlucoseChart";
 
-// Move API constants to a separate file
+// API configuration
 const API_CONFIG = {
   loginUrl: "https://api-la.libreview.io/llu/auth/login",
   graphUrl:
@@ -12,19 +13,23 @@ const API_CONFIG = {
   },
 };
 
-// Create a separate data fetching function
-async function getGlucoseData() {
-  // Add error handling
-  try {
-    const token = await getToken();
-    const data = await fetchGlucoseReadings(token);
-    return processReadings(data);
-  } catch (error) {
-    console.error("Error fetching glucose data:", error);
-    return [];
-  }
-}
+// Type definitions
+type GlucoseData = {
+  data: {
+    connection: {
+      glucoseMeasurement: {
+        Timestamp: string;
+        Value: number;
+      };
+    };
+    graphData: {
+      Timestamp: string;
+      Value: number;
+    }[];
+  };
+};
 
+// Data fetching functions
 async function getToken() {
   const response = await fetch(API_CONFIG.loginUrl, {
     body: JSON.stringify({
@@ -36,7 +41,7 @@ async function getToken() {
       "Content-Type": "application/json",
       ...API_CONFIG.headers,
     },
-    cache: "no-store", // Prevent caching of authentication requests
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -54,7 +59,7 @@ async function fetchGlucoseReadings(token: string) {
       Authorization: `Bearer ${token}`,
       ...API_CONFIG.headers,
     },
-    next: { revalidate: 300 }, // Cache for 5 minutes
+    next: { revalidate: 300 },
   });
 
   if (!response.ok) {
@@ -62,62 +67,6 @@ async function fetchGlucoseReadings(token: string) {
   }
 
   return response.json();
-}
-
-/**
- * 
- * "glucoseMeasurement": {
-                "FactoryTimestamp": "1/22/2025 1:29:12 AM",
-                "Timestamp": "1/21/2025 10:29:12 PM",
-                "type": 1,
-                "ValueInMgPerDl": 190,
-                "TrendArrow": 3,
-                "TrendMessage": null,
-                "MeasurementColor": 2,
-                "GlucoseUnits": 1,
-                "Value": 190,
-                "isHigh": false,
-                "isLow": false
-            },
-
- * @param data 
- * @returns 
- */
-
-// type definition for the data object
-type GlucoseData = {
-  data: {
-    connection: {
-      glucoseMeasurement: {
-        Timestamp: string;
-        Value: number;
-      };
-    };
-    graphData: {
-      Timestamp: string;
-      Value: number;
-    }[];
-  };
-};
-
-function processReadings(data: GlucoseData) {
-  const { glucoseMeasurement } = data.data.connection;
-  const lastReading = {
-    date: glucoseMeasurement.Timestamp,
-    value: glucoseMeasurement.Value,
-    isMax: false,
-  };
-
-  const readings = data.data.graphData.map(
-    (item: { Timestamp: string; Value: number }) => ({
-      date: item.Timestamp,
-      value: item.Value,
-      isMax: false,
-    })
-  );
-
-  readings.push(lastReading);
-  return findLocalMaxima(readings);
 }
 
 function findLocalMaxima(
@@ -163,7 +112,35 @@ function findLocalMaxima(
   });
 }
 
-// Create a loading component
+function processReadings(data: GlucoseData) {
+  const { glucoseMeasurement } = data.data.connection;
+  const lastReading = {
+    date: glucoseMeasurement.Timestamp,
+    value: glucoseMeasurement.Value,
+    isMax: false,
+  };
+
+  const readings = data.data.graphData.map((item) => ({
+    date: item.Timestamp,
+    value: item.Value,
+    isMax: false,
+  }));
+
+  readings.push(lastReading);
+  return findLocalMaxima(readings);
+}
+
+async function getGlucoseData() {
+  try {
+    const token = await getToken();
+    const data = await fetchGlucoseReadings(token);
+    return processReadings(data);
+  } catch (error) {
+    console.error("Error fetching glucose data:", error);
+    return [];
+  }
+}
+
 function LoadingState() {
   return (
     <div className="flex items-center justify-center h-screen bg-slate-600">
@@ -172,16 +149,13 @@ function LoadingState() {
   );
 }
 
-// Modify the page component to use Suspense
-import { Suspense } from "react";
-
 export default async function Home() {
-  const readings = await getGlucoseData();
+  const initialData = await getGlucoseData();
 
   return (
     <main className="bg-slate-600 min-h-screen p-8 flex justify-center items-center w-full">
       <Suspense fallback={<LoadingState />}>
-        <GlucoseChart data={readings} />
+        <GlucoseChart initialData={initialData} />
       </Suspense>
     </main>
   );
