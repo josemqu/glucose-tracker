@@ -1,60 +1,79 @@
+// page.tsx
 import { GlucoseChart } from "@/components/GlucoseChart";
+import { cookies } from "next/headers";
 
-type GlucoseDataProps = {
-  data: {
-    date: string;
-    value: number;
-    isMax: boolean;
-  }[];
+// Move API constants to a separate file
+const API_CONFIG = {
+  loginUrl: "https://api-la.libreview.io/llu/auth/login",
+  graphUrl:
+    "https://api-la.libreview.io/llu/connections/46c16886-c96e-e911-813f-02d09c370615/graph",
+  headers: {
+    product: "llu.android",
+    version: "4.9.0",
+  },
 };
 
-const loginUrl = "https://api-la.libreview.io/llu/auth/login";
-const graphUrl =
-  "https://api-la.libreview.io/llu/connections/46c16886-c96e-e911-813f-02d09c370615/graph";
-
-const headers = {
-  product: "llu.android",
-  version: "4.9.0",
-};
-
-const body = {
-  email: process.env.EMAIL,
-  password: process.env.PASSWORD,
-};
-
+// Create a separate data fetching function
 async function getGlucoseData() {
-  const getToken = async () => {
-    const { data } = await fetch(loginUrl, {
-      body: JSON.stringify(body),
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-    }).then((res) => res.json());
+  // Add error handling
+  try {
+    const token = await getToken();
+    const data = await fetchGlucoseReadings(token);
+    return processReadings(data);
+  } catch (error) {
+    console.error("Error fetching glucose data:", error);
+    return [];
+  }
+}
 
-    return data.authTicket;
-  };
+async function getToken() {
+  const response = await fetch(API_CONFIG.loginUrl, {
+    body: JSON.stringify({
+      email: process.env.EMAIL,
+      password: process.env.PASSWORD,
+    }),
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...API_CONFIG.headers,
+    },
+    cache: "no-store", // Prevent caching of authentication requests
+  });
 
-  const { token } = await getToken();
+  if (!response.ok) {
+    throw new Error("Failed to authenticate");
+  }
 
-  const getGlucoseData = await fetch(graphUrl, {
+  const { data } = await response.json();
+  return data.authTicket.token;
+}
+
+async function fetchGlucoseReadings(token: string) {
+  const response = await fetch(API_CONFIG.graphUrl, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
-      ...headers,
+      ...API_CONFIG.headers,
     },
-  }).then((res) => res.json());
+    next: { revalidate: 300 }, // Cache for 5 minutes
+  });
 
-  const { glucoseMeasurement } = getGlucoseData.data.connection;
+  if (!response.ok) {
+    throw new Error("Failed to fetch glucose data");
+  }
 
+  return response.json();
+}
+
+function processReadings(data: any) {
+  const { glucoseMeasurement } = data.data.connection;
   const lastReading = {
     date: glucoseMeasurement.Timestamp,
     value: glucoseMeasurement.Value,
     isMax: false,
   };
 
-  let readings = getGlucoseData.data.graphData.map(
+  let readings = data.data.graphData.map(
     (item: { Timestamp: string; Value: number }) => ({
       date: item.Timestamp,
       value: item.Value,
@@ -62,73 +81,73 @@ async function getGlucoseData() {
     })
   );
 
-  // add last reading to the end of the data array
   readings.push(lastReading);
-
-  // given an array of glucose readings, identify the local maximums
-  const findLocalMaxima = (data: GlucoseDataProps["data"]) => {
-    return data.map((reading, index, array) => {
-      const currentValue = reading.value;
-
-      // Get available previous and next values
-      const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
-      const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
-      const next1Value =
-        index < array.length - 1 ? array[index + 1].value : -Infinity;
-      const next2Value =
-        index < array.length - 2 ? array[index + 2].value : -Infinity;
-
-      // For edge points (first two or last two), check only available neighbors
-      let isLocalMax = false;
-
-      if (array.length <= 1) {
-        // If there are less than 3 points, all points are local maxima
-        isLocalMax = currentValue > next1Value && currentValue > next2Value;
-      } else if (index <= 2) {
-        // First two points: check only available previous and next two points
-        isLocalMax =
-          currentValue >= prev1Value &&
-          currentValue >= next1Value &&
-          currentValue >= next2Value;
-      } else if (index >= array.length - 3) {
-        // Last two points: check only available previous two and next points
-        isLocalMax =
-          currentValue >= prev2Value &&
-          currentValue >= prev1Value &&
-          currentValue >= next1Value;
-      } else if (index >= array.length - 2) {
-        // Last point: check only available previous two points
-        isLocalMax = currentValue > prev2Value && currentValue > prev1Value;
-      } else {
-        // Middle points: check all two points on both sides
-        isLocalMax =
-          currentValue >= prev2Value &&
-          currentValue >= prev1Value &&
-          currentValue >= next1Value &&
-          currentValue >= next2Value;
-      }
-
-      return {
-        ...reading,
-        isMax: isLocalMax,
-        label: isLocalMax ? currentValue : null,
-      };
-    });
-  };
-
-  readings = findLocalMaxima(readings);
-  // console.log({ localMaxs });
-
-  console.log({ readings });
-  return readings;
+  return findLocalMaxima(readings);
 }
+
+function findLocalMaxima(
+  data: Array<{ date: string; value: number; isMax: boolean }>
+) {
+  return data.map((reading, index, array) => {
+    const currentValue = reading.value;
+    const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
+    const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
+    const next1Value =
+      index < array.length - 1 ? array[index + 1].value : -Infinity;
+    const next2Value =
+      index < array.length - 2 ? array[index + 2].value : -Infinity;
+
+    let isLocalMax = false;
+    if (array.length <= 1) {
+      isLocalMax = currentValue > next1Value && currentValue > next2Value;
+    } else if (index <= 2) {
+      isLocalMax =
+        currentValue >= prev1Value &&
+        currentValue >= next1Value &&
+        currentValue >= next2Value;
+    } else if (index >= array.length - 3) {
+      isLocalMax =
+        currentValue >= prev2Value &&
+        currentValue >= prev1Value &&
+        currentValue >= next1Value;
+    } else if (index >= array.length - 2) {
+      isLocalMax = currentValue > prev2Value && currentValue > prev1Value;
+    } else {
+      isLocalMax =
+        currentValue >= prev2Value &&
+        currentValue >= prev1Value &&
+        currentValue >= next1Value &&
+        currentValue >= next2Value;
+    }
+
+    return {
+      ...reading,
+      isMax: isLocalMax,
+      label: isLocalMax ? currentValue : null,
+    };
+  });
+}
+
+// Create a loading component
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center h-screen bg-slate-600">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+    </div>
+  );
+}
+
+// Modify the page component to use Suspense
+import { Suspense } from "react";
 
 export default async function Home() {
   const readings = await getGlucoseData();
 
   return (
-    <main className="bg-slate-600 h-screen p-8 flex justify-center items-center  w-full">
-      <GlucoseChart data={readings} />
+    <main className="bg-slate-600 min-h-screen p-8 flex justify-center items-center w-full">
+      <Suspense fallback={<LoadingState />}>
+        <GlucoseChart data={readings} />
+      </Suspense>
     </main>
   );
 }
