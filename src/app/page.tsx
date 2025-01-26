@@ -1,6 +1,7 @@
 // app/page.tsx
 import { Suspense } from "react";
 import { GlucoseChart } from "@/components/GlucoseChart";
+import { addDecimalValues } from "@/lib/utils";
 
 // API configuration
 const API_CONFIG = {
@@ -72,7 +73,12 @@ async function fetchGlucoseReadings(token: string) {
 function findLocalMaxima(
   data: Array<{ date: string; value: number; isMax: boolean }>
 ) {
-  return data.map((reading, index, array) => {
+  console.log("findLocalMAx");
+
+  // add decimal values to the readings
+  const dataWithDecimals = addDecimalValues(data);
+
+  return dataWithDecimals.map((reading, index, array) => {
     const currentValue = reading.value;
     const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
     const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
@@ -120,21 +126,26 @@ function processReadings(data: GlucoseData) {
     isMax: false,
   };
 
-  const readings = data.data.graphData.map((item) => ({
+  const prevReadings = data.data.graphData.map((item) => ({
     date: item.Timestamp,
     value: item.Value,
     isMax: false,
   }));
 
-  readings.push(lastReading);
-  return findLocalMaxima(readings);
+  prevReadings.push(lastReading);
+
+  const processedData = findLocalMaxima(prevReadings);
+
+  return processedData;
 }
 
 async function getGlucoseData() {
   try {
     const token = await getToken();
     const data = await fetchGlucoseReadings(token);
-    return processReadings(data);
+    const processedData = processReadings(data);
+    // console.log("Processed data:", processedData);
+    return processedData;
   } catch (error) {
     console.error("Error fetching glucose data:", error);
     return [];

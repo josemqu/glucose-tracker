@@ -26,3 +26,13 @@ export function dateTimeFormatter(
 
   return `${dateObj.toLocaleDateString("es-AR")} ${time}`;
 }
+
+export function addDecimalValues(
+  data: Array<{ date: string; value: number; isMax: boolean }>
+) {
+  // add a decimal value to each reading based on index
+  return data.map((reading, i) => ({
+    ...reading,
+    value: reading.value + i * 0.0001,
+  }));
+}

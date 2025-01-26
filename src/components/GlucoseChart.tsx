@@ -126,7 +126,10 @@ const CustomTooltip = ({
   return (
     <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
       <p className="font-bold text-xl text-center" style={{ color }}>
-        {value} mg/dL
+        {value.toLocaleString("es-AR", {
+          maximumFractionDigits: 0,
+        })}{" "}
+        mg/dL
       </p>
       <p className="font-medium text-slate-500 text-sm text-center">
         {dateTimeFormatter(label)}
@@ -284,7 +287,9 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                       r={0}
                       fill="red"
                       stroke="none"
-                      label={point.value}
+                      label={point.value.toLocaleString("es-AR", {
+                        maximumFractionDigits: 0,
+                      })}
                       className="z-10 font-medium text-black"
                       isFront
                     />

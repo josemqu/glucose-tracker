@@ -1,5 +1,6 @@
 // app/api/glucose/route.ts
 import { NextResponse } from "next/server";
+import { addDecimalValues } from "@/lib/utils";
 
 // const loginUrl = "https://api-la.libreview.io/llu/auth/login";
 const graphUrl =
@@ -37,7 +38,10 @@ async function findLocalMaxima(
     isMax: boolean;
   }[]
 ) {
-  return data.map((reading, index, array) => {
+  // add decimal to the value
+  const dataWithDecimal = addDecimalValues(data);
+
+  return dataWithDecimal.map((reading, index, array) => {
     const currentValue = reading.value;
     const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
     const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
