@@ -1,6 +1,6 @@
 // app/api/glucose/route.ts
 import { NextResponse } from "next/server";
-import { addDecimalValues } from "@/lib/utils";
+import { findLocalMaxima } from "@/lib/utils";
 
 // const loginUrl = "https://api-la.libreview.io/llu/auth/login";
 const graphUrl =
@@ -30,55 +30,6 @@ const headers = {
 //   const { data } = await response.json();
 //   return data.authTicket.token;
 // }
-
-async function findLocalMaxima(
-  data: {
-    date: string;
-    value: number;
-    isMax: boolean;
-  }[]
-) {
-  // add decimal to the value
-  const dataWithDecimal = addDecimalValues(data);
-
-  return dataWithDecimal.map((reading, index, array) => {
-    const currentValue = reading.value;
-    const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
-    const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
-    const next1Value =
-      index < array.length - 1 ? array[index + 1].value : -Infinity;
-    const next2Value =
-      index < array.length - 2 ? array[index + 2].value : -Infinity;
-
-    let isLocalMax = false;
-    if (array.length <= 1) {
-      isLocalMax = currentValue > next1Value && currentValue > next2Value;
-    } else if (index <= 2) {
-      isLocalMax =
-        currentValue >= prev1Value &&
-        currentValue >= next1Value &&
-        currentValue >= next2Value;
-    } else if (index >= array.length - 3) {
-      isLocalMax =
-        currentValue >= prev2Value &&
-        currentValue >= prev1Value &&
-        currentValue >= next1Value;
-    } else if (index >= array.length - 2) {
-      isLocalMax = currentValue > prev2Value && currentValue > prev1Value;
-    } else {
-      isLocalMax =
-        currentValue >= prev2Value &&
-        currentValue >= prev1Value &&
-        currentValue >= next1Value &&
-        currentValue >= next2Value;
-    }
-
-    return {
-      ...reading,
-      isMax: isLocalMax,
-    };
-  });
-}
 
 export async function GET() {
   try {
@@ -115,7 +66,7 @@ export async function GET() {
     );
 
     readings.push(lastReading);
-    readings = await findLocalMaxima(readings);
+    readings = findLocalMaxima(readings);
 
     // Cache headers for 1 minute
     const headers2 = {
