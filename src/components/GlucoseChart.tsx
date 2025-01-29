@@ -105,10 +105,16 @@ const CustomTooltip = ({
   );
 };
 
-const CustomizedLabel = (props: { value: number }) => {
+const CustomizedLabel = (props: {
+  viewBox: { x: number; y: number };
+  value: number;
+}) => {
   const { value } = props;
+  const { x, y } = props.viewBox;
   return (
     <text
+      x={x}
+      y={y}
       fontSize={"1.1rem"}
       // use className to style the text
       className="font-semibold text-xs sm:text-sm md:text-base md:font-bold lg:text-lg"
