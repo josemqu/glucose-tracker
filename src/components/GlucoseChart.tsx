@@ -105,10 +105,13 @@ const CustomTooltip = ({
   );
 };
 
-const CustomizedLabel = (props: {
+// create a type definition to props
+type CustomizedLabelProps = {
   viewBox: { x: number; y: number };
   value: number;
-}) => {
+};
+
+const CustomizedLabel = (props: CustomizedLabelProps) => {
   const { value } = props;
   const { x, y } = props.viewBox;
   return (
@@ -300,7 +303,15 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                     x={point.date}
                     y={`${point.value + 15}`}
                     r={0}
-                    label={<CustomizedLabel value={point.value} />}
+                    label={
+                      <CustomizedLabel
+                        value={point.value}
+                        viewBox={{
+                          x: 0,
+                          y: 0,
+                        }}
+                      />
+                    }
                     className="z-10 text-base font-semibold"
                     isFront
                   />
