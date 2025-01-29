@@ -1,7 +1,10 @@
 // app/page.tsx
 import { Suspense } from "react";
 import { GlucoseChart } from "@/components/GlucoseChart";
-import { addDecimalValues } from "@/lib/utils";
+import { processReadings } from "@/lib/utils";
+import { ModeToggle } from "@/components/ModeToggle";
+import { Button } from "@/components/ui/button";
+import { User } from "lucide-react";
 
 // API configuration
 const API_CONFIG = {
@@ -14,43 +17,33 @@ const API_CONFIG = {
   },
 };
 
-// Type definitions
-type GlucoseData = {
-  data: {
-    connection: {
-      glucoseMeasurement: {
-        Timestamp: string;
-        Value: number;
-      };
-    };
-    graphData: {
-      Timestamp: string;
-      Value: number;
-    }[];
-  };
-};
-
 // Data fetching functions
 async function getToken() {
-  const response = await fetch(API_CONFIG.loginUrl, {
-    body: JSON.stringify({
-      email: process.env.EMAIL,
-      password: process.env.PASSWORD,
-    }),
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...API_CONFIG.headers,
-    },
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(API_CONFIG.loginUrl, {
+      body: JSON.stringify({
+        email: process.env.EMAIL,
+        password: process.env.PASSWORD,
+      }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...API_CONFIG.headers,
+      },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to authenticate");
+    if (!response.ok) {
+      throw new Error("Failed to authenticate");
+    }
+
+    const { data } = await response.json();
+
+    return data.authTicket.token;
+  } catch (error) {
+    console.error("Error fetching token:", error);
+    return "";
   }
-
-  const { data } = await response.json();
-  return data.authTicket.token;
 }
 
 async function fetchGlucoseReadings(token: string) {
@@ -70,81 +63,11 @@ async function fetchGlucoseReadings(token: string) {
   return response.json();
 }
 
-function findLocalMaxima(
-  data: Array<{ date: string; value: number; isMax: boolean }>
-) {
-  console.log("findLocalMAx");
-
-  // add decimal values to the readings
-  const dataWithDecimals = addDecimalValues(data);
-
-  return dataWithDecimals.map((reading, index, array) => {
-    const currentValue = reading.value;
-    const prev2Value = index >= 2 ? array[index - 2].value : -Infinity;
-    const prev1Value = index >= 1 ? array[index - 1].value : -Infinity;
-    const next1Value =
-      index < array.length - 1 ? array[index + 1].value : -Infinity;
-    const next2Value =
-      index < array.length - 2 ? array[index + 2].value : -Infinity;
-
-    let isLocalMax = false;
-    if (array.length <= 1) {
-      isLocalMax = currentValue > next1Value && currentValue > next2Value;
-    } else if (index <= 2) {
-      isLocalMax =
-        currentValue >= prev1Value &&
-        currentValue >= next1Value &&
-        currentValue >= next2Value;
-    } else if (index >= array.length - 3) {
-      isLocalMax =
-        currentValue >= prev2Value &&
-        currentValue >= prev1Value &&
-        currentValue >= next1Value;
-    } else if (index >= array.length - 2) {
-      isLocalMax = currentValue > prev2Value && currentValue > prev1Value;
-    } else {
-      isLocalMax =
-        currentValue >= prev2Value &&
-        currentValue >= prev1Value &&
-        currentValue >= next1Value &&
-        currentValue >= next2Value;
-    }
-
-    return {
-      ...reading,
-      isMax: isLocalMax,
-      label: isLocalMax ? currentValue : null,
-    };
-  });
-}
-
-function processReadings(data: GlucoseData) {
-  const { glucoseMeasurement } = data.data.connection;
-  const lastReading = {
-    date: glucoseMeasurement.Timestamp,
-    value: glucoseMeasurement.Value,
-    isMax: false,
-  };
-
-  const prevReadings = data.data.graphData.map((item) => ({
-    date: item.Timestamp,
-    value: item.Value,
-    isMax: false,
-  }));
-
-  prevReadings.push(lastReading);
-
-  const processedData = findLocalMaxima(prevReadings);
-
-  return processedData;
-}
-
 async function getGlucoseData() {
   try {
     const token = await getToken();
     const data = await fetchGlucoseReadings(token);
     const processedData = processReadings(data);
-    // console.log("Processed data:", processedData);
     return processedData;
   } catch (error) {
     console.error("Error fetching glucose data:", error);
@@ -164,9 +87,17 @@ export default async function Home() {
   const initialData = await getGlucoseData();
 
   return (
-    <main className="bg-slate-600 min-h-screen p-8 flex justify-center items-start w-full">
+    <main className="bg-zinc-950 min-h-screen max-w-screen flex justify-center items-start w-full p-4">
       <Suspense fallback={<LoadingState />}>
-        <GlucoseChart initialData={initialData} />
+        <div className="min-w-full min-h-full gap-2 flex flex-col items-end">
+          <div className="flex justify-end items-center gap-2 w-full ">
+            <Button variant="outline" size="icon">
+              <User />
+            </Button>
+            <ModeToggle />
+          </div>
+          <GlucoseChart initialData={initialData} />
+        </div>
       </Suspense>
     </main>
   );

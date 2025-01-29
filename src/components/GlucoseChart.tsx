@@ -8,16 +8,32 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   ReferenceArea,
   ReferenceLine,
   ReferenceDot,
   TooltipProps,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dateTimeFormatter } from "@/lib/utils";
+import {
+  colors,
+  dateTimeFormatter,
+  getColor,
+  getLighterColor,
+} from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChartConfig, ChartContainer, ChartStyle } from "@/components/ui/chart";
+
+const chartConfig = {
+  desktop: {
+    label: "Desktop",
+    color: "#2563eb",
+  },
+  mobile: {
+    label: "Mobile",
+    color: "#60a5fa",
+  },
+} satisfies ChartConfig;
 
 // Keep your existing types and constants
 type GlucoseDataProps = {
@@ -30,65 +46,8 @@ type GlucoseDataProps = {
 
 const OPTIONS = {
   fillOpacity: 0.05,
-  lineColor: "#333",
-  lineOpacity: 0.5,
-  labelColor: "#aaa",
-};
-
-const colors = {
-  low: "#0022ff",
-  normal: "#00cc00",
-  high: "#fcb813",
-  veryHigh: "#b6202e",
-};
-
-// Keep your existing utility functions
-const getLighterColor = (color: string) => {
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const hsl = rgbToHsl(r, g, b);
-  return `hsl(${hsl[0]}, ${hsl[1]}%, ${hsl[2] + 10}%)`;
-};
-
-const rgbToHsl = (r: number, g: number, b: number) => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      case b:
-        h = ((r - g) / d + 4) / 6;
-        break;
-    }
-  }
-
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-};
-
-const getColor = (value: number | undefined) => {
-  if (!value) return "#000";
-  if (value < 70) return colors.low;
-  if (value <= 180) return colors.normal;
-  if (value <= 250) return colors.high;
-  return colors.veryHigh;
+  lineColor: "white",
+  lineOpacity: 0.9,
 };
 
 // Keep your existing custom components
@@ -124,7 +83,7 @@ const CustomTooltip = ({
   const color = getColor(value);
 
   return (
-    <div className="bg-white p-2 rounded-lg shadow-md border border-gray-200">
+    <div className="p-2 rounded-lg shadow-md border bg-zinc-900 border-slate-600">
       <p className="font-bold text-xl text-center" style={{ color }}>
         {value.toLocaleString("es-AR", {
           maximumFractionDigits: 0,
@@ -172,20 +131,20 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
 
   const yAxisMin = 0;
   const yAxisMax = 320;
-  const yAxisTicks = [0, 70, 180, 250, 300];
+  const yAxisTicks = [0, 70, 180, 250, 320];
   const xAxisMin = 0;
   const xAxisMax = data?.length - 1;
 
   return (
-    <Card className="w-full h-full bg-slate-400 border-slate-600 p-0 sm:p-1 md:p-2 lg:p-4">
+    <Card className="w-full h-full border-zinc-700 p-0 sm:p-1 md:p-2 lg:p-4 bg-zinc-900">
       <CardHeader className="p-4">
         <CardTitle className="flex justify-between items-center sm:flex-row flex-col mx-1 sm:mx-2">
-          <div className="flex items-center justify-center">
-            <h4 className="text-base md:text-lg font-bold text-slate-600 text-nowrap">
+          <div className="flex items-center justify-center text-slate-300">
+            <h4 className="text-base md:text-lg font-bold  text-nowrap">
               Glucose Readings with Local Maxima
             </h4>
           </div>
-          <div className="text-sm font-normal text-nowrap">
+          <div className="text-xs font-normal text-nowrap text-slate-400">
             <span>{isLoading || error ? "🔴" : "🟢"}</span>
             <span>
               {` Last updated: ${dateTimeFormatter(lastUpdated.toISOString(), {
@@ -202,101 +161,125 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
           </Alert>
         )}
       </CardHeader>
-      <CardContent className="h-[20rem] w-full sm:h-[30rem] md:h-[35rem] lg:h-[45rem]">
-        <div className="w-full h-full">
-          <ResponsiveContainer className="bg-white shadow-lg rounded-lg p-4">
-            <LineChart data={data}>
-              <ReferenceArea
-                y1={0}
-                y2={70}
-                fill={colors.low}
-                fillOpacity={OPTIONS.fillOpacity}
-              />
-              <ReferenceLine
-                y={70}
-                stroke={colors.normal}
-                strokeDasharray="3 3"
-              />
-              <ReferenceArea
-                y1={70}
-                y2={180}
-                fill={colors.normal}
-                fillOpacity={0.1}
-              />
-              <ReferenceLine
-                y={180}
-                stroke={colors.normal}
-                strokeDasharray="3 3"
-              />
-              <ReferenceArea
-                y1={180}
-                y2={250}
-                fill={colors.high}
-                fillOpacity={OPTIONS.fillOpacity}
-              />
-              <ReferenceArea
-                y1={250}
-                y2={yAxisMax}
-                fill={colors.veryHigh}
-                fillOpacity={OPTIONS.fillOpacity}
-              />
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(date: string) =>
-                  dateTimeFormatter(date).split(" ")[1]
-                }
-                label={{
-                  value: "Time",
-                  position: "insideBottomRight",
-                  offset: -5,
-                }}
-                domain={[xAxisMin, xAxisMax]}
-                height={40}
-              />
-              <YAxis
-                domain={[yAxisMin, yAxisMax]}
-                ticks={yAxisTicks}
-                tickFormatter={(value: number) => `${value}`}
-                label={{
-                  value: "mg/dL",
-                  position: "insideTopRight",
-                  viewBox: { x: 45, y: 28, width: 50, height: 50 },
-                }}
-                width={30}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Line
-                type="monotone"
-                dataKey="value"
-                dot={<CustomDot />}
-                stroke={OPTIONS.lineColor}
-                strokeWidth={1}
-                strokeOpacity={OPTIONS.lineOpacity}
-                connectNulls
-                // isAnimationActive={true}
-              />
-              {data?.length &&
-                data
-                  .filter((point) => point.isMax)
-                  .map((point, index) => (
-                    <ReferenceDot
-                      key={`${point.date}-${index}`}
-                      x={point.date}
-                      y={`${point.value + 15}`}
-                      r={0}
-                      fill="red"
-                      stroke="none"
-                      label={point.value.toLocaleString("es-AR", {
-                        maximumFractionDigits: 0,
-                      })}
-                      className="z-10 font-medium text-black"
-                      isFront
-                    />
-                  ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      {/* h-[20rem] w-full sm:h-[30rem] md:h-[35rem] lg:h-full */}
+      <CardContent className="">
+        <ChartContainer
+          config={chartConfig}
+          className="w-full max-h-[78vh]" //w-full h-[20rem] sm:h-[30rem] md:h-[35rem] lg:h-[45rem]
+        >
+          <LineChart data={data} style={ChartStyle}>
+            <ReferenceArea
+              y1={0}
+              y2={70}
+              fill={colors.low}
+              fillOpacity={OPTIONS.fillOpacity}
+            />
+            <ReferenceLine
+              y={70}
+              stroke={colors.normal}
+              strokeDasharray="3 3"
+            />
+            <ReferenceLine
+              y={250}
+              stroke={colors.veryHigh}
+              strokeDasharray="3 3"
+            />
+            <ReferenceLine
+              y={70}
+              stroke={colors.normal}
+              strokeDasharray="3 3"
+            />
+            <ReferenceArea
+              y1={70}
+              y2={180}
+              fill={colors.normal}
+              fillOpacity={OPTIONS.fillOpacity}
+            />
+            <ReferenceLine y={180} stroke={colors.high} strokeDasharray="3 3" />
+            <ReferenceArea
+              y1={180}
+              y2={250}
+              fill={colors.high}
+              fillOpacity={OPTIONS.fillOpacity}
+            />
+            <ReferenceArea
+              y1={250}
+              y2={320}
+              fill={colors.veryHigh}
+              fillOpacity={OPTIONS.fillOpacity}
+            />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--chart-grid))"
+            />
+            <XAxis
+              dataKey="date"
+              tick={{
+                stroke: "hsl(var(--chart-grid))",
+                fontWeight: 100,
+              }}
+              tickFormatter={(date: string) =>
+                dateTimeFormatter(date).split(" ")[1]
+              }
+              label={{
+                value: "Time",
+                position: "insideBottomRight",
+                offset: -5,
+              }}
+              domain={[xAxisMin, xAxisMax]}
+              height={40}
+            />
+            <YAxis
+              domain={[yAxisMin, yAxisMax]}
+              tick={{
+                stroke: "hsl(var(--chart-grid))",
+                fontWeight: 100,
+              }}
+              ticks={yAxisTicks}
+              tickFormatter={(value: number) => `${value}`}
+              label={{
+                value: "mg/dL",
+                position: "insideTopRight",
+                viewBox: { x: 45, y: 28, width: 50, height: 50 },
+              }}
+              width={30}
+              stroke="hsl(var(--chart-grid))"
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ stroke: "red", strokeWidth: 1 }}
+            />
+            {/* <ChartTooltip content={<ChartTooltipContent />} /> */}
+            <Line
+              type="monotone"
+              dataKey="value"
+              dot={<CustomDot />}
+              stroke={OPTIONS.lineColor}
+              strokeWidth={1}
+              strokeOpacity={OPTIONS.lineOpacity}
+              connectNulls
+              // isAnimationActive={true}
+            />
+            {data?.length &&
+              data
+                .filter((point) => point.isMax)
+                .map((point, index) => (
+                  <ReferenceDot
+                    key={`${point.date}-${index}`}
+                    x={point.date}
+                    y={`${point.value + 15}`}
+                    r={0}
+                    fill="red"
+                    stroke="none"
+                    label={point.value.toLocaleString("es-AR", {
+                      maximumFractionDigits: 0,
+                    })}
+                    className="z-10 font-medium text-black"
+                    isFront
+                  />
+                ))}
+          </LineChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
