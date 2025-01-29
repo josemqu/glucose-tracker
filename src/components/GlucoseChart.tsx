@@ -58,14 +58,22 @@ const CustomDot = (props: {
 }) => {
   const { cx, cy, value } = props;
   const color = getColor(typeof value === "number" ? value : undefined);
+  const radius =
+    window.innerWidth < 500
+      ? 0
+      : window.innerWidth < 640
+      ? 2
+      : window.innerWidth < 1024
+      ? 3
+      : 4;
   return (
     <circle
       cx={cx}
       cy={cy}
-      r={4}
+      r={radius}
       fill={getLighterColor(color)}
       stroke={color}
-      strokeWidth={1}
+      strokeWidth={0}
     />
   );
 };
@@ -94,6 +102,36 @@ const CustomTooltip = ({
         {dateTimeFormatter(label)}
       </p>
     </div>
+  );
+};
+
+const renderedLabel = (props: { x: number; y: number; value: number }) => {
+  const { x, y, value } = props;
+  return (
+    <text x={x} y={y} dy={-10} fontSize={12} textAnchor="middle" fill="white">
+      {value}
+    </text>
+  );
+};
+
+// CustomizedLabel component
+const CustomizedLabel = (props: any) => {
+  const { value } = props;
+  const { x, y } = props.viewBox;
+  return (
+    <text
+      x={x}
+      y={y}
+      fontSize={"1.1rem"}
+      // use className to style the text
+      className="font-semibold text-xs sm:text-sm md:text-base md:font-bold lg:text-lg"
+      textAnchor="middle"
+      fill={getColor(value)}
+    >
+      {value.toLocaleString("es-AR", {
+        maximumFractionDigits: 0,
+      })}
+    </text>
   );
 };
 
@@ -269,12 +307,8 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                     x={point.date}
                     y={`${point.value + 15}`}
                     r={0}
-                    fill="red"
-                    stroke="none"
-                    label={point.value.toLocaleString("es-AR", {
-                      maximumFractionDigits: 0,
-                    })}
-                    className="z-10 font-medium text-black"
+                    label={<CustomizedLabel value={point.value} />}
+                    className="z-10 text-base font-semibold"
                     isFront
                   />
                 ))}
