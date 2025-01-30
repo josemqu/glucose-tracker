@@ -182,14 +182,6 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
     { min: 0, max: 0 }
   );
 
-  console.log({
-    data,
-    min,
-    max,
-    yAxisMin,
-    yAxisMax,
-  });
-
   const breakPointPercentage = (value: number) => {
     return `${((value - min) / (max - min)) * 100}%`;
   };
