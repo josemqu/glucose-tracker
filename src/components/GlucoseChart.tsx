@@ -18,7 +18,7 @@ import {
   colors,
   dateTimeFormatter,
   getColor,
-  getLighterColor,
+  // getLighterColor,
 } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -71,9 +71,9 @@ const CustomDot = (props: {
       cx={cx}
       cy={cy}
       r={radius}
-      fill={getLighterColor(color)}
+      fill={color}
       stroke={color}
-      strokeWidth={0}
+      strokeWidth={1}
     />
   );
 };
@@ -93,10 +93,9 @@ const CustomTooltip = ({
   return (
     <div className="p-2 rounded-lg shadow-md border bg-zinc-900 border-slate-600">
       <p className="font-bold text-xl text-center" style={{ color }}>
-        {value.toLocaleString("es-AR", {
+        {`${value.toLocaleString("es-AR", {
           maximumFractionDigits: 0,
-        })}{" "}
-        mg/dL
+        })} mg/dL`}
       </p>
       <p className="font-medium text-slate-500 text-sm text-center">
         {dateTimeFormatter(label)}
@@ -168,6 +167,32 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
   const yAxisTicks = [0, 70, 180, 250, 320];
   const xAxisMin = 0;
   const xAxisMax = data?.length - 1;
+
+  const { min, max } = data.reduce(
+    (result, dataPoint) => ({
+      min:
+        dataPoint.value < result.min || result.min === 0
+          ? dataPoint.value
+          : result.min,
+      max:
+        dataPoint.value > result.max || result.max === 0
+          ? dataPoint.value
+          : result.max,
+    }),
+    { min: 0, max: 0 }
+  );
+
+  console.log({
+    data,
+    min,
+    max,
+    yAxisMin,
+    yAxisMax,
+  });
+
+  const breakPointPercentage = (value: number) => {
+    return `${((value - min) / (max - min)) * 100}%`;
+  };
 
   return (
     <Card className="w-full h-full border-zinc-700 p-0 sm:p-1 md:p-2 lg:p-4 bg-zinc-900">
@@ -279,20 +304,69 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
               width={30}
               stroke="hsl(var(--chart-grid))"
             />
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ stroke: "red", strokeWidth: 1 }}
-            />
+            <Tooltip content={<CustomTooltip />} cursor={false} />
             {/* <ChartTooltip content={<ChartTooltipContent />} /> */}
+            <defs>
+              <linearGradient id="colorUv" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop
+                  offset={"0.1%"}
+                  stopColor={colors.low}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(70)}
+                  stopColor={colors.low}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(70)}
+                  stopColor={colors.normal}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(180)}
+                  stopColor={colors.normal}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(180)}
+                  stopColor={colors.high}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(250)}
+                  stopColor={colors.high}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={breakPointPercentage(250)}
+                  stopColor={colors.veryHigh}
+                  stopOpacity={0.9}
+                />
+                <stop
+                  offset={"100%"}
+                  stopColor={colors.veryHigh}
+                  stopOpacity={0.9}
+                />
+              </linearGradient>
+            </defs>
             <Line
               type="monotone"
               dataKey="value"
               dot={<CustomDot />}
-              stroke={OPTIONS.lineColor}
-              strokeWidth={1}
+              // dot={false}
+              activeDot={{
+                fill: "transparent",
+                r: 4,
+                stroke: "white",
+                strokeWidth: 2,
+              }}
+              // stroke={OPTIONS.lineColor}
+              stroke="url(#colorUv)"
+              strokeWidth={2}
               strokeOpacity={OPTIONS.lineOpacity}
               connectNulls
-              // isAnimationActive={true}
+              isAnimationActive={true}
             />
             {data?.length &&
               data
