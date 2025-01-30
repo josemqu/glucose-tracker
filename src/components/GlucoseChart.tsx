@@ -12,6 +12,7 @@ import {
   ReferenceLine,
   ReferenceDot,
   TooltipProps,
+  Label,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -275,27 +276,30 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
               label={{
                 value: "Time",
                 position: "insideBottomRight",
-                offset: -5,
+                offset: 0,
               }}
               domain={[xAxisMin, xAxisMax]}
+              stroke="hsl(var(--chart-grid))"
               height={40}
             />
             <YAxis
               domain={[yAxisMin, yAxisMax]}
+              ticks={yAxisTicks}
               tick={{
                 stroke: "hsl(var(--chart-grid))",
                 fontWeight: 100,
               }}
-              ticks={yAxisTicks}
-              tickFormatter={(value: number) => `${value}`}
-              label={{
-                value: "mg/dL",
-                position: "insideTopRight",
-                viewBox: { x: 45, y: 28, width: 50, height: 50 },
-              }}
-              width={30}
-              stroke="hsl(var(--chart-grid))"
-            />
+              width={40}
+            >
+              <Label
+                value="mg/dL"
+                angle={-90}
+                position="insideTopLeft"
+                style={{ textAnchor: "middle" }}
+                dy={12}
+                dx={-12}
+              />
+            </YAxis>
             <Tooltip content={<CustomTooltip />} cursor={false} />
             {/* <ChartTooltip content={<ChartTooltipContent />} /> */}
             <defs>
