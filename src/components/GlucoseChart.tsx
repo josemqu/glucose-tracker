@@ -184,7 +184,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
     };
 
     // Set up polling every 2 minutes
-    const intervalId = setInterval(fetchData, 2 * 60 * 1000);
+    const intervalId = setInterval(fetchData, 2 * 5 * 1000);
 
     // Cleanup
     return () => clearInterval(intervalId);

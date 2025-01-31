@@ -163,18 +163,19 @@ export function processReadings(data: GlucoseData) {
     isMin: false,
   };
 
-  const prevReadings = data.data.graphData.map((item) => ({
+  let readings = data.data.graphData.map((item) => ({
     date: item.Timestamp,
     value: item.Value,
     isMax: false,
     isMin: false,
   }));
 
-  prevReadings.push(lastReading);
+  readings.push(lastReading);
 
-  const processedData = findLocalMaxima(prevReadings);
+  readings = findLocalMaxima(readings);
+  readings = findLocalMinima(readings);
 
-  return processedData;
+  return readings;
 }
 
 const rgbToHsl = (r: number, g: number, b: number) => {
