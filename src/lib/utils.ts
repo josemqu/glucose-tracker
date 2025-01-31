@@ -44,7 +44,7 @@ export function dateTimeFormatter(
 }
 
 export function addDecimalValues(
-  data: Array<{ date: string; value: number; isMax: boolean }>
+  data: Array<{ date: string; value: number; isMax: boolean; isMin: boolean }>
 ) {
   // add a decimal value to each reading based on index
   return data.map((reading, i) => ({
@@ -53,7 +53,12 @@ export function addDecimalValues(
   }));
 }
 export function findLocalMaxima(
-  data: Array<{ date: string; value: number; isMax: boolean }>
+  data: Array<{
+    date: string;
+    value: number;
+    isMax: boolean;
+    isMin: boolean;
+  }>
 ) {
   // add decimal values to the readings
   const dataWithDecimals = addDecimalValues(data);
@@ -98,18 +103,71 @@ export function findLocalMaxima(
   });
 }
 
+export function findLocalMinima(
+  data: Array<{
+    date: string;
+    value: number;
+    isMax: boolean;
+    isMin: boolean;
+  }>
+) {
+  // add decimal values to the readings
+  const dataWithDecimals = addDecimalValues(data);
+
+  return dataWithDecimals.map((reading, index, array) => {
+    const currentValue = reading.value;
+    const prev2Value = index >= 2 ? array[index - 2].value : Infinity;
+    const prev1Value = index >= 1 ? array[index - 1].value : Infinity;
+    const next1Value =
+      index < array.length - 1 ? array[index + 1].value : Infinity;
+    const next2Value =
+      index < array.length - 2 ? array[index + 2].value : Infinity;
+
+    let isLocalMin = false;
+    if (array.length <= 1) {
+      isLocalMin = currentValue < next1Value && currentValue < next2Value;
+    } else if (index <= 2) {
+      isLocalMin =
+        currentValue <= prev1Value &&
+        currentValue <= next1Value &&
+        currentValue <= next2Value;
+    } else if (index >= array.length - 3) {
+      isLocalMin =
+        currentValue <= prev2Value &&
+        currentValue <= prev1Value &&
+        currentValue <= next1Value;
+    } else if (index >= array.length - 2) {
+      isLocalMin = currentValue < prev2Value && currentValue < prev1Value;
+    } else {
+      isLocalMin =
+        currentValue <= prev2Value &&
+        currentValue <= prev1Value &&
+        currentValue <= next1Value &&
+        currentValue <= next2Value;
+    }
+
+    return {
+      ...reading,
+      isMin: isLocalMin,
+      label: isLocalMin ? currentValue : null,
+    };
+  });
+}
+
 export function processReadings(data: GlucoseData) {
   const { glucoseMeasurement } = data.data.connection;
   const lastReading = {
     date: glucoseMeasurement.Timestamp,
     value: glucoseMeasurement.Value,
     isMax: false,
+    isMin: false,
   };
 
   const prevReadings = data.data.graphData.map((item) => ({
     date: item.Timestamp,
     value: item.Value,
     isMax: false,
+    isMin: false,
   }));
 
   prevReadings.push(lastReading);

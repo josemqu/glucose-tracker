@@ -1,6 +1,6 @@
 // app/api/glucose/route.ts
 import { NextResponse } from "next/server";
-import { findLocalMaxima } from "@/lib/utils";
+import { findLocalMaxima, findLocalMinima } from "@/lib/utils";
 
 // const loginUrl = "https://api-la.libreview.io/llu/auth/login";
 const graphUrl =
@@ -55,6 +55,7 @@ export async function GET() {
       date: glucoseMeasurement.Timestamp,
       value: glucoseMeasurement.Value,
       isMax: false,
+      isMin: false,
     };
 
     let readings = data.data.graphData.map(
@@ -62,11 +63,13 @@ export async function GET() {
         date: item.Timestamp,
         value: item.Value,
         isMax: false,
+        isMin: false,
       })
     );
 
     readings.push(lastReading);
     readings = findLocalMaxima(readings);
+    readings = findLocalMinima(readings);
 
     // Cache headers for 1 minute
     const headers2 = {

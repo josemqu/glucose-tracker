@@ -42,6 +42,7 @@ type GlucoseDataProps = {
     date: string;
     value: number;
     isMax: boolean;
+    isMin: boolean;
   }[];
 };
 
@@ -131,6 +132,32 @@ const CustomizedLabel = (props: CustomizedLabelProps) => {
   );
 };
 
+function renderReferenceDots(
+  data: { date: string; value: number; isMax: boolean; isMin: boolean }[]
+): unknown {
+  return data
+    .filter((point) => point.isMax || point.isMin)
+    .map((point, index) => (
+      <ReferenceDot
+        key={`${point.date}-${index}`}
+        x={point.date}
+        y={point.value + (point.isMax ? 15 : point.isMin ? -25 : 0)}
+        r={0}
+        label={
+          <CustomizedLabel
+            value={point.value}
+            viewBox={{
+              x: 0,
+              y: 0,
+            }}
+          />
+        }
+        className="z-10 text-base font-semibold"
+        isFront
+      />
+    ));
+}
+
 // Updated main component with auto-refresh
 export function GlucoseChart({ initialData }: GlucoseDataProps) {
   const [data, setData] = useState(initialData);
@@ -157,7 +184,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
     };
 
     // Set up polling every 2 minutes
-    const intervalId = setInterval(fetchData, 1 * 5 * 1000);
+    const intervalId = setInterval(fetchData, 2 * 60 * 1000);
 
     // Cleanup
     return () => clearInterval(intervalId);
@@ -364,28 +391,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
               connectNulls
               isAnimationActive={true}
             />
-            {data?.length &&
-              data
-                .filter((point) => point.isMax)
-                .map((point, index) => (
-                  <ReferenceDot
-                    key={`${point.date}-${index}`}
-                    x={point.date}
-                    y={`${point.value + 15}`}
-                    r={0}
-                    label={
-                      <CustomizedLabel
-                        value={point.value}
-                        viewBox={{
-                          x: 0,
-                          y: 0,
-                        }}
-                      />
-                    }
-                    className="z-10 text-base font-semibold"
-                    isFront
-                  />
-                ))}
+            {data?.length && renderReferenceDots(data)}
           </LineChart>
         </ChartContainer>
       </CardContent>
