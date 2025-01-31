@@ -141,7 +141,7 @@ function renderReferenceDots(
       <ReferenceDot
         key={`${point.date}-${index}`}
         x={point.date}
-        y={point.value + (point.isMax ? 15 : point.isMin ? -25 : 0)}
+        y={point.value + (point.isMax ? 15 : point.isMin ? -30 : 0)}
         r={0}
         label={
           <CustomizedLabel
@@ -246,7 +246,16 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
           config={chartConfig}
           className="w-full max-h-[78vh]" //w-full h-[20rem] sm:h-[30rem] md:h-[35rem] lg:h-[45rem]
         >
-          <LineChart data={data} style={ChartStyle}>
+          <LineChart
+            data={data}
+            style={ChartStyle}
+            margin={{
+              top: 5,
+              right: 15,
+              // bottom: 5,
+              left: 5,
+            }}
+          >
             <ReferenceArea
               y1={0}
               y2={70}
