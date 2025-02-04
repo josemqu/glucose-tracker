@@ -223,7 +223,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
         <CardTitle className="flex justify-between items-center sm:flex-row flex-col mx-1 sm:mx-2">
           <div className="flex items-center justify-center text-slate-300">
             <h4 className="text-base md:text-lg font-bold  text-nowrap">
-              Glucose Readings with Local Maxima
+              Glucose Readings
             </h4>
           </div>
           <div className="text-xs font-normal text-nowrap text-slate-400">
@@ -259,26 +259,14 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
               left: 5,
             }}
           >
+            <ReferenceLine y={70} strokeDasharray="3 3" />
+            <ReferenceLine y={180} strokeDasharray="3 3" />
+            <ReferenceLine y={250} strokeDasharray="3 3" />
             <ReferenceArea
               y1={0}
               y2={70}
               fill={colors.low}
               fillOpacity={OPTIONS.fillOpacity}
-            />
-            <ReferenceLine
-              y={70}
-              stroke={colors.normal}
-              strokeDasharray="3 3"
-            />
-            <ReferenceLine
-              y={250}
-              stroke={colors.veryHigh}
-              strokeDasharray="3 3"
-            />
-            <ReferenceLine
-              y={70}
-              stroke={colors.normal}
-              strokeDasharray="3 3"
             />
             <ReferenceArea
               y1={70}
@@ -286,7 +274,6 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
               fill={colors.normal}
               fillOpacity={OPTIONS.fillOpacity}
             />
-            <ReferenceLine y={180} stroke={colors.high} strokeDasharray="3 3" />
             <ReferenceArea
               y1={180}
               y2={250}
@@ -348,46 +335,42 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
             />
             {/* <ChartTooltip content={<ChartTooltipContent />} /> */}
             <defs>
-              <linearGradient id="colorUv" x1="0%" y1="100%" x2="0%" y2="0%">
-                <stop
-                  offset={"0.1%"}
-                  stopColor={colors.low}
-                  stopOpacity={0.9}
-                />
+              <linearGradient id="colorUv" x1="0%" y1="104%" x2="0%" y2="-2%">
+                <stop offset={"0%"} stopColor={colors.low} stopOpacity={1} />
                 <stop
                   offset={breakPointPercentage(70)}
                   stopColor={colors.low}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={breakPointPercentage(70)}
                   stopColor={colors.normal}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={breakPointPercentage(180)}
                   stopColor={colors.normal}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={breakPointPercentage(180)}
                   stopColor={colors.high}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={breakPointPercentage(250)}
                   stopColor={colors.high}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={breakPointPercentage(250)}
                   stopColor={colors.veryHigh}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
                 <stop
                   offset={"100%"}
                   stopColor={colors.veryHigh}
-                  stopOpacity={0.9}
+                  stopOpacity={1}
                 />
               </linearGradient>
             </defs>
