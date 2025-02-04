@@ -94,15 +94,18 @@ const CustomTooltip = ({
 
   return (
     <div
-      className={`p-2 rounded-lg shadow-md border bg-zinc-900`}
+      className={`p-1 md:p-2 rounded-md md:rounded-lg shadow-md border bg-zinc-900`}
       style={{ borderColor: color }}
     >
-      <p className="font-bold text-xl text-center" style={{ color }}>
+      <p
+        className="font-bold text-sm text-center sm:text-md md:text-xl lg:text-2xl"
+        style={{ color }}
+      >
         {`${value.toLocaleString("es-AR", {
           maximumFractionDigits: 0,
         })} mg/dL`}
       </p>
-      <p className="font-medium text-slate-500 text-sm text-center">
+      <p className="font-medium text-slate-500 text-xs text-center sm:text-md md:text-base lg:text-lg">
         {dateTimeFormatter(label)}
       </p>
     </div>
