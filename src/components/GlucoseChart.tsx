@@ -61,9 +61,9 @@ const CustomDot = (props: {
   const { cx, cy, value } = props;
   const color = getColor(typeof value === "number" ? value : undefined);
   const radius =
-    window.innerWidth < 500
+    window.innerWidth < 600
       ? 0
-      : window.innerWidth < 640
+      : window.innerWidth < 740
       ? 2
       : window.innerWidth < 1024
       ? 3
@@ -93,7 +93,10 @@ const CustomTooltip = ({
   const color = getColor(value);
 
   return (
-    <div className="p-2 rounded-lg shadow-md border bg-zinc-900 border-slate-600">
+    <div
+      className={`p-2 rounded-lg shadow-md border bg-zinc-900`}
+      style={{ borderColor: color }}
+    >
       <p className="font-bold text-xl text-center" style={{ color }}>
         {`${value.toLocaleString("es-AR", {
           maximumFractionDigits: 0,
@@ -184,7 +187,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
     };
 
     // Set up polling every 2 minutes
-    const intervalId = setInterval(fetchData, 2 * 5 * 1000);
+    const intervalId = setInterval(fetchData, 2 * 60 * 1000);
 
     // Cleanup
     return () => clearInterval(intervalId);
@@ -299,6 +302,7 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="hsl(var(--chart-grid))"
+              cursor={"pointer"}
             />
             <XAxis
               dataKey="date"
@@ -336,7 +340,12 @@ export function GlucoseChart({ initialData }: GlucoseDataProps) {
                 dx={-12}
               />
             </YAxis>
-            <Tooltip content={<CustomTooltip />} cursor={false} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{
+                strokeDasharray: "3 3",
+              }}
+            />
             {/* <ChartTooltip content={<ChartTooltipContent />} /> */}
             <defs>
               <linearGradient id="colorUv" x1="0%" y1="100%" x2="0%" y2="0%">
